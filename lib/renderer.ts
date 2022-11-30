@@ -1,4 +1,4 @@
-import { combineLatest, Subject, Subscription } from "rxjs"
+import { combineLatest, Subject, Subscription, tap } from "rxjs"
 import {
   BufferGeometry,
   Points,
@@ -93,11 +93,7 @@ export class WireFrameRenderer {
       throw new Error("Cannot Lerp, no current WireFrame")
     }
 
-    const bLineMaterial = new LineBasicMaterial({
-      color: this.lineMaterial.color,
-      transparent: true,
-    })
-
+    const bLineMaterial = this.lineMaterial.clone()
     const bLineGeos = []
 
     const bLineObjs = []
@@ -107,8 +103,10 @@ export class WireFrameRenderer {
     this.lerpHandle = new Subject()
 
     const lookupMap = backwards
-      ? buildPointLookup(frame, this.wireframe)
-      : buildPointLookup(this.wireframe, frame)
+      ? buildIndexLookup(frame, this.wireframe)
+      : buildIndexLookup(this.wireframe, frame)
+
+    this.wireframeSub.unsubscribe()
 
     this.wireframeSub = combineLatest([
       this.wireframe,
@@ -122,9 +120,10 @@ export class WireFrameRenderer {
       bLineMaterial.needsUpdate = true
 
       const live = larger.points.map((p) => p.clone())
+      const lookup = lookupMap.largeToSmall
       const lerpAnchors: [Vector3, Vector3][] = larger.points.map((p, i) => [
         p,
-        smaller.points[lookupMap.get(i) ?? 0],
+        smaller.points[lookup.get(i)!],
       ])
 
       const clampAlpha = easeInOutQuint(clamp(alpha, 0, 1))
@@ -143,12 +142,15 @@ export class WireFrameRenderer {
         connections: larger.connections,
       })
 
+      // set temp stuff (smaller)
+      const reverseLookup = lookupMap.smallToLarge
+
       this.setLineGeos(
         {
-          points: live,
+          points: live, // points in the order of larger
           connections: smaller.connections.map((con) => [
-            lookupMap.get(con[0]) ?? 0,
-            lookupMap.get(con[1]) ?? 0,
+            reverseLookup.get(con[0])!,
+            reverseLookup.get(con[1])!,
           ]),
         },
         {
@@ -173,11 +175,18 @@ const getIndecesSortedByDistance = (point: Vector3, points: Vector3[]) =>
     .sort((a, b) => a.p.distanceTo(point) - b.p.distanceTo(point))
     .map((p) => p.i)
 
-const buildPointLookup = (largeFrame: IWireFrame, smallFrame: IWireFrame) => {
+const buildIndexLookup = (largeFrame: IWireFrame, smallFrame: IWireFrame) => {
   const lookup = new Map<number, number>()
+  const reverse = new Map<number, number>()
+
+  const connect = (largeIndex: number, smallIndex: number) => {
+    lookup.set(largeIndex, smallIndex)
+    reverse.set(smallIndex, largeIndex)
+  }
 
   largeFrame.points.forEach((point, index) => {
     const sortedIndeces = getIndecesSortedByDistance(point, smallFrame.points)
+
     const vals = Array.from(lookup.values())
     while (
       vals.includes(sortedIndeces[0]) &&
@@ -185,10 +194,13 @@ const buildPointLookup = (largeFrame: IWireFrame, smallFrame: IWireFrame) => {
     ) {
       sortedIndeces.shift()
     }
-    lookup.set(index, sortedIndeces[0])
+    connect(index, sortedIndeces[0])
   })
 
-  return lookup
+  return {
+    largeToSmall: lookup,
+    smallToLarge: reverse,
+  }
 }
 
 function easeInOutQuint(x: number): number {

@@ -10,6 +10,7 @@ import {
 } from "three"
 
 import { Cube } from "./lib/cube"
+import { Icosahedron } from "./lib/icosahedron"
 import { Octohedron } from "./lib/octohedron"
 
 import { WireFrameRenderer } from "./lib/renderer"
@@ -29,7 +30,7 @@ const camera = new PerspectiveCamera(
   500
 )
 
-camera.position.set(10, 5, 20)
+camera.position.set(10, 5, 50)
 camera.lookAt(0, 0, 0)
 renderer.setSize(window.innerWidth, window.innerHeight)
 
@@ -54,6 +55,7 @@ const flexLineMaterial = new LineBasicMaterial({
 
 const cube = new Cube(5, new Vector3(0, 0, 0))
 const octo = new Octohedron(5, new Vector3(0, 0, 0))
+const icos = new Icosahedron(5, new Vector3())
 
 const flex = new WireFrameRenderer(
   flexLineMaterial,
@@ -76,11 +78,12 @@ const flex = new WireFrameRenderer(
 const clock = new Clock()
 clock.start()
 
-const lerpHandle = flex.lerp(octo)
+const lerpHandle = flex.lerp(icos)
 
 const tick = () => {
   cube.setRad(Math.sin(clock.getElapsedTime()) + 10)
   octo.setRad(Math.sin(clock.getElapsedTime() * 2) + 10)
+  icos.setRad(Math.sin(clock.getElapsedTime() * 2) + 10)
 
   lerpHandle.run(Math.cos(clock.getElapsedTime() * 0.5) * 1 + 0.5)
 
