@@ -215,8 +215,6 @@ const buildIndexLookup = (largeFrame: IWireFrame, smallFrame: IWireFrame) => {
     new Array(largeFrame.points.length).fill(null).map((_, i) => i)
   )
 
-  console.log(closestLargeBySmallIndex)
-
   let r = 0
 
   while (available.size > 0) {
