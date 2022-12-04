@@ -1,4 +1,4 @@
-import { Observable, Subject } from "rxjs"
+import { Observable, ReplaySubject, Subject } from "rxjs"
 import { Vector3 } from "three"
 
 export interface IWireFrame {
@@ -6,7 +6,7 @@ export interface IWireFrame {
   readonly connections: [number, number][]
 }
 
-export class WireFrame extends Subject<IWireFrame> implements IWireFrame {
+export class WireFrame extends ReplaySubject<IWireFrame> implements IWireFrame {
   readonly points: Vector3[]
   readonly connections: [number, number][]
 
