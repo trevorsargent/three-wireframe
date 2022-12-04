@@ -169,11 +169,32 @@ export class WireFrameRenderer {
   }
 }
 
-const getIndecesSortedByDistance = (point: Vector3, points: Vector3[]) =>
-  points
-    .map((p, i) => ({ p, i }))
-    .sort((a, b) => a.p.distanceTo(point) - b.p.distanceTo(point))
-    .map((p) => p.i)
+const getIndecesSortedByDistance = (
+  point: Vector3,
+  startIndex: number,
+  points: Vector3[]
+): PointRelationship[] => {
+  return points
+    .map((p, i) => ({
+      distance: p.distanceTo(point) + Math.random() * 0.001,
+      endIndex: i,
+      startIndex,
+    }))
+    .sort((a, b) => a.distance - b.distance)
+}
+
+interface PointRelationship {
+  distance: number
+  endIndex: number
+  startIndex: number
+}
+
+const indexOfLongestSubArray = (arr: any[][]) =>
+  arr.reduce(
+    (maxIndex, subArray, curIndex) =>
+      subArray.length > arr[maxIndex].length ? curIndex : maxIndex,
+    0
+  )
 
 const buildIndexLookup = (largeFrame: IWireFrame, smallFrame: IWireFrame) => {
   const lookup = new Map<number, number>()
@@ -184,18 +205,34 @@ const buildIndexLookup = (largeFrame: IWireFrame, smallFrame: IWireFrame) => {
     reverse.set(smallIndex, largeIndex)
   }
 
-  largeFrame.points.forEach((point, index) => {
-    const sortedIndeces = getIndecesSortedByDistance(point, smallFrame.points)
+  const closestLargeBySmallIndex = smallFrame.points
+    .map((point, idx) =>
+      getIndecesSortedByDistance(point, idx, largeFrame.points)
+    )
+    .sort((a, b) => b[0].distance - a[0].distance)
 
-    const vals = Array.from(lookup.values())
-    while (
-      vals.includes(sortedIndeces[0]) &&
-      vals.length < smallFrame.points.length
-    ) {
-      sortedIndeces.shift()
+  const available = new Set(
+    new Array(largeFrame.points.length).fill(null).map((_, i) => i)
+  )
+
+  console.log(closestLargeBySmallIndex)
+
+  let r = 0
+
+  while (available.size > 0) {
+    const next = closestLargeBySmallIndex[r].find((rel) =>
+      available.has(rel.endIndex)
+    )
+
+    if (!next) {
+      continue
     }
-    connect(index, sortedIndeces[0])
-  })
+
+    connect(next.endIndex, next.startIndex)
+    available.delete(next.endIndex)
+
+    r = (r + 1) % closestLargeBySmallIndex.length
+  }
 
   return {
     largeToSmall: lookup,
