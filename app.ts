@@ -1,4 +1,5 @@
 import {
+  AdditiveBlending,
   CineonToneMapping,
   Clock,
   LineBasicMaterial,
@@ -10,6 +11,7 @@ import {
 } from "three"
 
 import { Cube } from "./lib/cube"
+import { Dodecahedron } from "./lib/dodecahedron"
 import { Icosahedron } from "./lib/icosahedron"
 import { Octohedron } from "./lib/octohedron"
 
@@ -51,17 +53,19 @@ const flexPointsMaterial = new PointsMaterial({ size: 0.5, color: 0xa0a0a0 })
 const flexLineMaterial = new LineBasicMaterial({
   color: 0xa0a0a0,
   transparent: true,
+  blending: AdditiveBlending,
 })
 
 const cube = new Cube(5, new Vector3(0, 0, 0))
 const octo = new Octohedron(5, new Vector3(0, 0, 0))
+const dodc = new Dodecahedron(5, new Vector3(0, 0, 0))
 const icos = new Icosahedron(5, new Vector3())
 
 const flex = new WireFrameRenderer(
   flexLineMaterial,
   flexPointsMaterial,
   scene
-).attachWireFrame(cube)
+).attachWireFrame(dodc)
 
 // const o = new WireFrameRenderer(
 //   lineMaterial,
@@ -81,11 +85,12 @@ clock.start()
 const lerpHandle = flex.lerp(icos)
 
 const tick = () => {
-  cube.setRad(Math.sin(clock.getElapsedTime()) + 10)
-  octo.setRad(Math.sin(clock.getElapsedTime() * 2) + 10)
-  icos.setRad(Math.sin(clock.getElapsedTime() * 2) + 10)
+  // cube.setRad(Math.sin(clock.getElapsedTime()) + 10)
+  // octo.setRad(Math.sin(clock.getElapsedTime() * 2) + 10)
+  // icos.setRad(Math.sin(clock.getElapsedTime() * 2) + 10)
+  const lerp = Math.cos(clock.getElapsedTime() * 0.5) * 0.5 + 0.5
 
-  lerpHandle.run(Math.cos(clock.getElapsedTime() * 0.5) * 1 + 0.5)
+  lerpHandle.run(lerp)
 
   const camX = Math.cos(clock.getElapsedTime() * 0.5) * 50
   const camZ = Math.sin(clock.getElapsedTime() * 0.5) * 50
